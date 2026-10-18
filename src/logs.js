@@ -452,7 +452,7 @@ export class LogSystem {
       const fa = sstep(FLAME_ON, 0.95, l.heatA) * (1 - l.wet), fb = sstep(FLAME_ON, 0.95, l.heatB) * (1 - l.wet);
       if (fa <= 0 && fb <= 0) continue;
       const r = l.radius * l.scaleApplied;
-      out.push({ a: l.a.clone(), b: l.b.clone(), ha: fa, hb: fb, r, H: H * (0.75 + 0.5 * Math.min(1, l.R0 / 0.06)), w: 0.035 + r * 1.05 });
+      out.push({ a: l.a.clone(), b: l.b.clone(), ha: fa, hb: fb, r, H: H * (0.75 + 0.5 * Math.min(1, l.R0 / 0.06)), w: 0.025 + r * 0.8 });
     }
     const c = this.coal;
     const cf = sstep(0.55, 1.05, c.heat) * (1 - c.wet);

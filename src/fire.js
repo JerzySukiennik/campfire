@@ -42,7 +42,7 @@ vec2 field(vec3 p, float pad) {
     heat *= heat;
     if (heat <= 0.001) continue;
     float H = segP[i].y * (0.35 + 0.65 * heat) * segP[i].w;
-    float h = p.y - c.y + segP[i].x * 0.4;
+    float h = p.y - c.y - segP[i].x * 0.15;
     float hn = h / H;
     if (hn < -0.3 || hn > 1.2) continue;
     float w = segP[i].z * (0.55 + 0.45 * heat) * pow(clamp(1.0 - hn, 0.0, 1.0), 0.55) * smoothstep(-0.25, 0.08, hn) + pad;
@@ -95,7 +95,11 @@ float viewDist(float d) { float z = d * 2.0 - 1.0; return 2.0 * cNear * cFar / (
 const vec2 TILE = vec2(${NX}.0, ${NY}.0);
 const vec2 TILES = vec2(${TX}.0, ${TY}.0);
 vec4 fieldAt(vec3 p) {
-  vec3 u = clamp((p - boxMin) / (boxMax - boxMin), 0.0, 1.0);
+  vec3 bs = boxMax - boxMin;
+  vec3 ur = (p - boxMin) / bs;
+  vec3 dm = min(ur, 1.0 - ur) * bs;
+  float edge = smoothstep(0.0, 0.12, min(min(dm.x, dm.z), dm.y + 0.12));
+  vec3 u = clamp(ur, 0.0, 1.0);
   float zf = u.z * ${NZ}.0 - 0.5;
   float z0 = clamp(floor(zf), 0.0, ${NZ - 1}.0);
   float z1 = min(z0 + 1.0, ${NZ - 1}.0);
@@ -104,7 +108,7 @@ vec4 fieldAt(vec3 p) {
   vec2 t0 = vec2(mod(z0, TILES.x), floor(z0 / TILES.x));
   vec2 t1 = vec2(mod(z1, TILES.x), floor(z1 / TILES.x));
   vec2 inv = 1.0 / (TILE * TILES);
-  return mix(texture2D(tField, (t0 * TILE + inT) * inv), texture2D(tField, (t1 * TILE + inT) * inv), fz);
+  return mix(texture2D(tField, (t0 * TILE + inT) * inv), texture2D(tField, (t1 * TILE + inT) * inv), fz) * edge;
 }
 
 void main() {
@@ -145,11 +149,12 @@ void main() {
         float cell = c4.a * 0.7 + c4.g * 0.3;
         float hh = hr * hr * 0.6 + hr * 0.6;
         float gap = smoothstep(0.45, 0.75, texture(tNoise, vec3(q.x * 2.2, q.y * 1.1 - time * 2.6, q.z * 2.2) + w1).a);
-        float edge = body - (cell * 0.7 + 0.12) * hh * 1.25 - 0.1 - (1.0 - cell) * 0.08 - gap * (0.12 + 0.25 * hr);
+        float lick = smoothstep(0.35, 0.7, texture(tNoise, vec3(q.x * 3.2, q.y * 0.9 - time * 1.9, q.z * 3.2) + w2 * 0.5).r);
+        float edge = body - (cell * 0.7 + 0.12) * hh * 1.25 - 0.1 - (1.0 - cell) * 0.08 - gap * (0.12 + 0.25 * hr) - lick * 0.22 * (1.0 - hr);
         float dens = smoothstep(0.0, 0.06, edge);
         if (dens > 0.001) {
           float core = clamp(edge * 2.4, 0.0, 1.0);
-          float temp = core * (1.08 - 0.62 * hr) + 0.16 * (1.0 - hr);
+          float temp = (core * (1.08 - 0.62 * hr) + 0.16 * (1.0 - hr)) * mix(0.55, 1.0, smoothstep(0.15, 0.65, body));
           float e = (0.06 + pow(clamp(temp, 0.0, 1.2), 2.4) * 1.6) * brightness;
           vec3 c = blackbody(temp);
           float baseBlue = smoothstep(0.1, 0.0, F.y) * smoothstep(0.25, 0.7, body) * (1.0 - hr) * 0.35;
@@ -234,7 +239,7 @@ export class Fire {
       u.segB.value[i].set(s.b.x, s.b.y, s.b.z, s.hb);
       const hv = 0.55 + 0.9 * (0.5 + 0.5 * fbm1(time * 0.55 + i * 3.7 + s.a.x * 2.0));
       u.segP.value[i].set(s.r, s.H, s.w, hv);
-      const pad = s.w + 0.2;
+      const pad = s.w + 0.3;
       for (const p of [s.a, s.b]) {
         mn.x = Math.min(mn.x, p.x - pad); mn.z = Math.min(mn.z, p.z - pad); mn.y = Math.min(mn.y, p.y - s.r - 0.05);
         mx.x = Math.max(mx.x, p.x + pad); mx.z = Math.max(mx.z, p.z + pad);
@@ -245,8 +250,8 @@ export class Fire {
     if (plume && plume.w > 0.001) {
       u.plume.value.copy(plume);
       u.plumeP.value.set(plume.H * (0.75 + 0.5 * (0.5 + 0.5 * fbm1(time * 0.45 + 17.0))), plume.R, 0, 0);
-      mn.x = Math.min(mn.x, plume.x - plume.R - 0.25); mx.x = Math.max(mx.x, plume.x + plume.R + 0.25);
-      mn.z = Math.min(mn.z, plume.z - plume.R - 0.25); mx.z = Math.max(mx.z, plume.z + plume.R + 0.25);
+      mn.x = Math.min(mn.x, plume.x - plume.R - 0.35); mx.x = Math.max(mx.x, plume.x + plume.R + 0.35);
+      mn.z = Math.min(mn.z, plume.z - plume.R - 0.35); mx.z = Math.max(mx.z, plume.z + plume.R + 0.35);
       mn.y = Math.min(mn.y, plume.y - 0.05); top = Math.max(top, plume.y + plume.H * 1.35);
     } else u.plume.value.set(0, 0, 0, 0);
     const any = n > 0 || (plume && plume.w > 0.001);
@@ -255,7 +260,7 @@ export class Fire {
     const hgt = Math.max(top - mn.y, 0);
     const lean = Math.hypot(wind.x, wind.z) * hgt * (0.5 + 0.3 * hgt) + 0.08;
     mn.x -= lean; mn.z -= lean; mx.x += lean; mx.z += lean;
-    mx.y = top + 0.1;
+    mx.y = top + 0.25;
     mn.y = Math.max(mn.y, -0.05);
     u.boxMin.value.copy(mn); u.boxMax.value.copy(mx);
     this.uniforms.topY.value = top;

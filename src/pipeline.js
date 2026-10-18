@@ -233,7 +233,7 @@ export class Pipeline {
     const prev = this.hist[this.histIdx], next = this.hist[1 - this.histIdx];
     const ma = this.mAccum.uniforms;
     ma.tCur.value = this.fxRT.texture; ma.tPrev.value = prev.texture;
-    ma.alpha.value = this.histValid ? 0.45 + 0.55 * Math.min(1, this.motion) : 1;
+    ma.alpha.value = this.histValid ? Math.min(1, 1 - Math.pow(0.55, 60 * Math.min(this.dt ?? 0.016, 0.1)) + 0.55 * Math.min(1, this.motion)) : 1;
     this.pass(this.mAccum, next);
     this.histIdx = 1 - this.histIdx;
     this.histValid = true;
