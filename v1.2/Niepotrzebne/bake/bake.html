@@ -1,0 +1,23 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js" } }</script>
+</head><body>
+<script type="module">
+import { makeWoodAtlas, makeForestFloor, makeAsh, makeTrunkBark, makeGrassCard } from '../../src/textures.js';
+import { createNoiseVolume } from '../../src/noise.js';
+window.bake = async () => {
+  const out = {};
+  const png = (t) => t.image.toDataURL('image/png');
+  const oak = makeWoodAtlas('oak', 1); out.oak = png(oak.map); out.oak_n = png(oak.normalMap);
+  const birch = makeWoodAtlas('birch', 2); out.birch = png(birch.map); out.birch_n = png(birch.normalMap);
+  const ff = makeForestFloor(); out.floor = png(ff.map); out.floor_n = png(ff.normalMap);
+  const ash = makeAsh(); out.ash = png(ash.map); out.ash_n = png(ash.normalMap);
+  const bark = makeTrunkBark(); out.bark = png(bark.map); out.bark_n = png(bark.normalMap);
+  out.grass = png(makeGrassCard());
+  const nv = createNoiseVolume(64).image.data;
+  let s = ''; for (let i = 0; i < nv.length; i += 8192) s += String.fromCharCode.apply(null, nv.subarray(i, i + 8192));
+  out.noise = btoa(s);
+  return out;
+};
+window.ready = true;
+</script></body></html>

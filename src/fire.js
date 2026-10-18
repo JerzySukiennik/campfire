@@ -42,10 +42,10 @@ vec2 field(vec3 p, float pad) {
     heat *= heat;
     if (heat <= 0.001) continue;
     float H = segP[i].y * (0.35 + 0.65 * heat) * segP[i].w;
-    float h = p.y - c.y - segP[i].x * 0.15;
+    float h = p.y - c.y - segP[i].x * 0.55;
     float hn = h / H;
-    if (hn < -0.3 || hn > 1.2) continue;
-    float w = segP[i].z * (0.55 + 0.45 * heat) * pow(clamp(1.0 - hn, 0.0, 1.0), 0.55) * smoothstep(-0.25, 0.08, hn) + pad;
+    if (hn < -0.18 || hn > 1.2) continue;
+    float w = segP[i].z * (0.55 + 0.45 * heat) * pow(clamp(1.0 - hn, 0.0, 1.0), 0.55) * smoothstep(-0.14, 0.1, hn) + pad;
     float d = length(pxz - c.xz);
     float ends = smoothstep(0.0, 0.12, t * (1.0 - t) * 4.0 + 0.05);
     float k = heat * smoothstep(w, w * 0.15, d) * ends;
