@@ -1,0 +1,28 @@
+import { chromium } from '/Users/jurek/Downloads/Claude/Projects/SatisFarm/node_modules/playwright-core/index.mjs';
+const out = '/private/tmp/claude-501/-Users-jurek-Downloads-Claude-Projects/b5cbb280-ecbe-46e7-a861-12832fa0c841/scratchpad';
+const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--ignore-gpu-blocklist', '--use-angle=metal'] });
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+const errs = []; page.on('pageerror', (e) => errs.push(e.message));
+await page.goto('http://127.0.0.1:8771/?auto&fixed');
+await page.waitForFunction(() => window.__campfire, null, { timeout: 90000 });
+await page.waitForTimeout(2500);
+const proj = (x, y, z) => page.evaluate(([x, y, z]) => { const c = __campfire; const v = new c.camera.position.constructor(x, y, z).project(c.camera); return [Math.round((v.x * 0.5 + 0.5) * innerWidth), Math.round((-v.y * 0.5 + 0.5) * innerHeight)]; }, [x, y, z]);
+const st = () => page.evaluate(() => { const c = __campfire; return { I: +c.logs.intensity.toFixed(2), air: +c.interaction.air.toFixed(2), blowing: c.interaction.blowing, toast: +c.interaction.mm.toast.toFixed(3), heat: +c.interaction.mm.heat.toFixed(2), onFire: c.interaction.mm.onFire, status: document.querySelector('#status').textContent, tip: c.interaction.mm.tip.toArray().map((v) => +v.toFixed(2)) }; });
+const [fx, fy] = await proj(0, 0.12, 0);
+await page.mouse.move(fx, fy); await page.mouse.down();
+await page.waitForTimeout(1600);
+console.log('blow', JSON.stringify(await st()));
+await page.screenshot({ path: `${out}/m_blow.png` });
+await page.mouse.up();
+await page.waitForTimeout(500);
+await page.keyboard.press('5');
+const [mx, my] = await proj(0.05, 0.42, 0.05);
+await page.mouse.move(mx, my);
+for (let i = 0; i < 8; i++) { await page.mouse.move(mx + (i % 2), my); await page.waitForTimeout(1000); console.log('mm', JSON.stringify(await st())); }
+await page.screenshot({ path: `${out}/m_toast.png` });
+await page.keyboard.press('1');
+await page.evaluate(() => { const w = document.querySelector('#wind'); w.value = 100; w.dispatchEvent(new Event('input')); });
+await page.waitForTimeout(3000);
+await page.screenshot({ path: `${out}/m_wind.png` });
+console.log('errors', errs);
+await browser.close();
